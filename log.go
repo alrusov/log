@@ -495,9 +495,9 @@ func (l *myWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// MakeIOwriter --
-func MakeIOwriter(suffix string) *log.Logger {
-	return log.New(io.Writer(&myWriter{}), suffix, 0)
+// NewSysLogger --
+func NewSysLogger(prefix string, flags int) *log.Logger {
+	return log.New(io.Writer(&myWriter{}), prefix, flags)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
