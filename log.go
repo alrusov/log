@@ -491,7 +491,7 @@ func FileName() string {
 type myWriter struct{}
 
 func (l *myWriter) Write(p []byte) (n int, err error) {
-	MessageEx(1, DEBUG, string(p))
+	MessageEx(1, DEBUG, strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 
