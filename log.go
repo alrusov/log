@@ -117,6 +117,14 @@ var (
 	pid int
 )
 
+// ChangeLevelAlertFunc --
+type ChangeLevelAlertFunc func(old Level, new Level)
+
+var (
+	alertSubscriberID = int64(0)
+	alertSubscribers  = map[int64]ChangeLevelAlertFunc{}
+)
+
 //----------------------------------------------------------------------------------------------------------------------------//
 
 func now() time.Time {
@@ -280,10 +288,43 @@ func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
 		return currentLogLevel, err
 	}
 
-	currentLogLevel = level
-	logger(0, INFO, `Current log level was set to "%s"`, logLevels[level].name)
+	logLock.Lock()
+	if currentLogLevel != level {
+		for _, f := range alertSubscribers {
+			f(currentLogLevel, level)
+		}
+		logLock.Unlock()
+
+		currentLogLevel = level
+		logger(0, INFO, `Current log level was set to "%s"`, logLevels[level].name)
+	} else {
+		logLock.Unlock()
+	}
+
 	return currentLogLevel, nil
 }
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// AddAlertFunc --
+func AddAlertFunc(f ChangeLevelAlertFunc) int64 {
+	logLock.Lock()
+	defer logLock.Unlock()
+
+	alertSubscriberID++
+	alertSubscribers[alertSubscriberID] = f
+	return alertSubscriberID
+}
+
+// DelAlertFunc --
+func DelAlertFunc(id int64) {
+	logLock.Lock()
+	defer logLock.Unlock()
+
+	delete(alertSubscribers, id)
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
 
 // SetFile -- file for log
 func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, flushPeriod int) {
@@ -292,9 +333,7 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 	}
 
 	fileDirectory = directory
-
 	localTime = useLocalTime
-
 	writerBufSize = bufSize
 
 	if flushPeriod > 0 {
