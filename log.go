@@ -65,7 +65,9 @@ const (
 	logFuncNameNone int = iota
 	logFuncNameShort
 	logFuncNameFull
+)
 
+const (
 	beforeFileBufSize = 100
 	lastBufSize       = 10
 )
@@ -87,6 +89,7 @@ var (
 		{UNKNOWN, "UNKNOWN", "??"},
 	}
 
+	enabled       = true
 	active        = true
 	firstTime     = true
 	beforeFileBuf = []string{}
@@ -191,6 +194,18 @@ func init() {
 
 	log.SetFlags(0)
 	log.SetOutput(&stdLogWriter{})
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// Enable --
+func Enable() {
+	enabled = true
+}
+
+// Disable --
+func Disable() {
+	enabled = false
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -397,6 +412,10 @@ func openLogFile(dt string) {
 //----------------------------------------------------------------------------------------------------------------------------//
 
 func logger(stackShift int, level Level, message string, params ...interface{}) {
+	if !enabled {
+		return
+	}
+
 	logLock.Lock()
 	defer logLock.Unlock()
 
