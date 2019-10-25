@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	//"github.com/kardianos/service"
@@ -89,6 +90,8 @@ var (
 		{UNKNOWN, "UNKNOWN", "??"},
 	}
 
+	consoleWriter io.Writer
+
 	enabled       = true
 	active        = true
 	firstTime     = true
@@ -127,6 +130,20 @@ var (
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
+func init() {
+	pid = os.Getpid()
+	misc.AddExitFunc("log.exit", exit, nil)
+
+	consoleWriter = &ConsoleWriter{}
+
+	log.SetFlags(0)
+	log.SetOutput(&stdLogWriter{})
+
+	go writerFlusher()
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
 func now() time.Time {
 	t := time.Now()
 
@@ -142,9 +159,36 @@ func now() time.Time {
 type stdLogWriter struct{}
 
 func (l *stdLogWriter) Write(p []byte) (int, error) {
-	s := strings.TrimSpace(string(p))
-	MessageEx(1, ERR, s)
-	return len(s), nil
+	MessageEx(1, ERR, strings.TrimSpace(string(p)))
+	return len(p), nil
+}
+
+// ConsoleWriter --
+type ConsoleWriter struct{}
+
+func (l *ConsoleWriter) Write(p []byte) (n int, err error) {
+	os.Stdout.Write(p)
+	return len(p), nil
+}
+
+// Testwriter --
+type Testwriter struct {
+	stream *testing.T
+}
+
+func (l *Testwriter) Write(p []byte) (n int, err error) {
+	l.stream.Log(string(p))
+	return len(p), nil
+}
+
+// SetConsoleWriter --
+func SetConsoleWriter(writer io.Writer) {
+	consoleWriter = writer
+}
+
+// SetTestWriter --
+func SetTestWriter(stream *testing.T) {
+	SetConsoleWriter(&Testwriter{stream: stream})
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -193,15 +237,6 @@ func writerFlusher() {
 			writerFlush()
 		}
 	}
-}
-
-func init() {
-	pid = os.Getpid()
-	misc.AddExitFunc("log.exit", exit, nil)
-	go writerFlusher()
-
-	log.SetFlags(0)
-	log.SetOutput(&stdLogWriter{})
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -357,6 +392,12 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
+func writeToConsole(msg string) {
+	if consoleWriter != nil {
+		consoleWriter.Write([]byte(msg))
+	}
+}
+
 func write(s string) {
 	if file != nil {
 		if writer != nil {
@@ -444,7 +485,7 @@ func openLogFile(dt string) {
 
 	if firstTime {
 		firstTime = false
-		fmt.Printf(msg)
+		writeToConsole(msg)
 	}
 }
 
@@ -509,7 +550,7 @@ func logger(stackShift int, level Level, message string, params ...interface{}) 
 	}
 	lastBuf = append(lastBuf, text)
 
-	fmt.Print(text)
+	writeToConsole(text)
 }
 
 // MessageEx -- add message to the log with custom shift
@@ -542,20 +583,6 @@ func FileNamePattern() string {
 // FileName --
 func FileName() string {
 	return fileName
-}
-
-//----------------------------------------------------------------------------------------------------------------------------//
-
-type myWriter struct{}
-
-func (l *myWriter) Write(p []byte) (n int, err error) {
-	MessageEx(1, DEBUG, strings.TrimSpace(string(p)))
-	return len(p), nil
-}
-
-// NewSysLogger --
-func NewSysLogger(prefix string, flags int) *log.Logger {
-	return log.New(io.Writer(&myWriter{}), prefix, flags)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
