@@ -375,18 +375,18 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 		writerFlushPeriod = flushPeriod
 	}
 
-	if directory == "-" {
+	if fileDirectory == "-" {
 		fileNamePattern = "-"
 	} else {
 		if suffix != "" {
 			suffix = "-" + suffix
 		}
 
-		if !filepath.IsAbs(directory) {
-			directory = misc.AppExecPath() + "/" + directory
+		if !filepath.IsAbs(fileDirectory) {
+			fileDirectory = misc.AppExecPath() + "/" + fileDirectory
 		}
 
-		fileNamePattern, _ = filepath.Abs(directory + "/%s" + suffix + ".log")
+		fileNamePattern, _ = filepath.Abs(fileDirectory + "/%s" + suffix + ".log")
 	}
 }
 
