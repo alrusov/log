@@ -10,13 +10,10 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	//"github.com/kardianos/service"
 
 	"github.com/alrusov/misc"
 	"github.com/alrusov/panic"
@@ -382,11 +379,7 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 			suffix = "-" + suffix
 		}
 
-		if !filepath.IsAbs(fileDirectory) {
-			fileDirectory = misc.AppExecPath() + "/" + fileDirectory
-		}
-
-		fileNamePattern, _ = filepath.Abs(fileDirectory + "/%s" + suffix + ".log")
+		fileNamePattern, _ = misc.AbsPath(fileDirectory + "/%s" + suffix + ".log")
 	}
 }
 
@@ -444,17 +437,6 @@ func openLogFile(dt string) {
 		t = t.Local()
 	}
 
-	/*
-		var runType string
-		if service.Interactive() {
-			runType = "an appication"
-		} else {
-			runType = "a service"
-		}
-
-		msg := fmt.Sprintf("[%d] %s *** %s %s was launched as %s at %s with command line \"%s\""+misc.EOS,
-	*/
-
 	ts := misc.BuildTime()
 	if ts != "" {
 		ts = " [" + ts + "+0000Z]"
@@ -466,7 +448,6 @@ func openLogFile(dt string) {
 		misc.AppName(),
 		misc.AppVersion(),
 		ts,
-		//runType,
 		t.Format(misc.DateTimeFormatRevWithMS+misc.DateTimeFormatTZ),
 		cmd)
 
