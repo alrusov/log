@@ -378,7 +378,7 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 		if suffix != "" {
 			suffix = "-" + suffix
 		}
-
+		fileDirectory, _ = misc.AbsPath(fileDirectory)
 		fileNamePattern, _ = misc.AbsPath(fileDirectory + "/%s" + suffix + ".log")
 	}
 }
