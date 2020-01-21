@@ -462,7 +462,7 @@ func openLogFile(dt string) {
 		t.Format(misc.DateTimeFormatRevWithMS+misc.DateTimeFormatTZ),
 		cmd)
 
-	if maxLen > 0 {
+	if maxLen > 0 && maxLen < len(msg) {
 		msg = msg[:maxLen]
 	}
 	msg += misc.EOS
@@ -516,8 +516,12 @@ func logger(stackShift int, level Level, message string, params ...interface{}) 
 		levelName = fmt.Sprintf("?%d?", level)
 	}
 
-	format := fmt.Sprintf("[%d] %s %s %s%s %s"+misc.EOS, pid, levelName, dt, tm, funcName, message)
+	format := fmt.Sprintf("[%d] %s %s %s%s %s", pid, levelName, dt, tm, funcName, message)
 	text := fmt.Sprintf(format, params...)
+	if maxLen > 0 && maxLen < len(text) {
+		text = text[:maxLen]
+	}
+	text += misc.EOS
 
 	if active {
 		if fileNamePattern == "" {
