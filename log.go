@@ -114,6 +114,8 @@ var (
 	writerMutex       = new(sync.Mutex)
 	writerFlushPeriod = 0
 
+	maxLen = 0
+
 	pid int
 )
 
@@ -253,6 +255,15 @@ func Disable() {
 // GetLastLog --
 func GetLastLog() []string {
 	return lastBuf
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// MaxLen --
+func MaxLen(ln int) int {
+	n := maxLen
+	maxLen = ln
+	return n
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -442,7 +453,7 @@ func openLogFile(dt string) {
 		ts = " [" + ts + "+0000Z]"
 	}
 
-	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %s with command line \"%s\""+misc.EOS,
+	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %s with command line \"%s\"",
 		pid,
 		logLevels[INFO].shortName,
 		misc.AppName(),
@@ -450,6 +461,11 @@ func openLogFile(dt string) {
 		ts,
 		t.Format(misc.DateTimeFormatRevWithMS+misc.DateTimeFormatTZ),
 		cmd)
+
+	if maxLen > 0 {
+		msg = msg[:maxLen]
+	}
+	msg += misc.EOS
 
 	if file != nil {
 		if writerBufSize > 0 {
