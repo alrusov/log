@@ -450,16 +450,16 @@ func openLogFile(dt string) {
 
 	ts := misc.BuildTime()
 	if ts != "" {
-		ts = " [" + ts + "+0000]"
+		ts = " [" + ts + "Z]"
 	}
 
-	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %s with command line \"%s\"",
+	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %sZ with command line \"%s\"",
 		pid,
 		logLevels[INFO].shortName,
 		misc.AppName(),
 		misc.AppVersion(),
 		ts,
-		t.Format(misc.DateTimeFormatRevWithMS+misc.DateTimeFormatTZ),
+		t.Format(misc.DateTimeFormatRev),
 		cmd)
 
 	if maxLen > 0 && maxLen < len(msg) {
