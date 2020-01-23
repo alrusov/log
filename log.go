@@ -450,7 +450,7 @@ func openLogFile(dt string) {
 
 	ts := misc.BuildTime()
 	if ts != "" {
-		ts = " [" + ts + "+0000Z]"
+		ts = " [" + ts + "+0000]"
 	}
 
 	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %s with command line \"%s\"",
