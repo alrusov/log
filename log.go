@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -158,7 +159,7 @@ func now() time.Time {
 type stdLogWriter struct{}
 
 func (l *stdLogWriter) Write(p []byte) (int, error) {
-	MessageEx(1, ERR, strings.TrimSpace(string(p)))
+	MessageEx(1, ERR, nil, "", strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 
@@ -327,7 +328,7 @@ func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
 	if !ok {
 		msg := fmt.Sprintf(`Invalid log level "%s", left unchanged "%s" `, levelName, logLevels[currentLogLevel].name)
 		err := errors.New(msg)
-		logger(0, WARNING, msg)
+		logger(0, WARNING, nil, "", msg)
 		return currentLogLevel, err
 	}
 
@@ -339,7 +340,7 @@ func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
 		logLock.Unlock()
 
 		currentLogLevel = level
-		logger(0, INFO, `Current log level was set to "%s"`, logLevels[level].name)
+		logger(0, INFO, nil, "", `Current log level was set to "%s"`, logLevels[level].name)
 	} else {
 		logLock.Unlock()
 	}
@@ -488,7 +489,7 @@ func openLogFile(dt string) {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-func logger(stackShift int, level Level, message string, params ...interface{}) {
+func logger(stackShift int, level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
 	if !enabled {
 		return
 	}
@@ -521,6 +522,11 @@ func logger(stackShift int, level Level, message string, params ...interface{}) 
 	if maxLen > 0 && maxLen < len(text) {
 		text = text[:maxLen]
 	}
+
+	if secureRE != nil {
+		text = secureRE.ReplaceAllString(text, replaceTo)
+	}
+
 	text += misc.EOS
 
 	if active {
@@ -555,23 +561,33 @@ func logger(stackShift int, level Level, message string, params ...interface{}) 
 }
 
 // MessageEx -- add message to the log with custom shift
-func MessageEx(shift int, level Level, message string, params ...interface{}) {
+func MessageEx(shift int, level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
 	if level <= currentLogLevel {
 		if level < 0 {
 			level = -level
 		}
-		logger(shift+1, level, message, params...)
+		logger(shift+1, level, secureRE, replaceTo, message, params...)
 	}
 }
 
 // Message -- add message to the log
 func Message(level Level, message string, params ...interface{}) {
-	MessageEx(1, level, message, params...)
+	MessageEx(1, level, nil, "", message, params...)
+}
+
+// SecuredMessage -- add message to the log with securing
+func SecuredMessage(level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
+	MessageEx(1, level, secureRE, replaceTo, message, params...)
 }
 
 // MessageWithSource -- add message to the log with source
 func MessageWithSource(level Level, source string, message string, params ...interface{}) {
 	Message(level, "["+source+"] "+message, params...)
+}
+
+// SecuredMessageWithSource -- add message to the log with source & securing
+func SecuredMessageWithSource(level Level, secureRE *regexp.Regexp, replaceTo string, source string, message string, params ...interface{}) {
+	SecuredMessage(level, secureRE, replaceTo, "["+source+"] "+message, params...)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
