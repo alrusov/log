@@ -71,6 +71,13 @@ const (
 	lastBufSize       = 10
 )
 
+// Replace --
+type Replace []replaceDef
+type replaceDef struct {
+	exp       *regexp.Regexp
+	replaceTo string
+}
+
 var (
 	logLevels = []logLevelDef{
 		{EMERG, "EMERG", "EM"},
@@ -489,7 +496,7 @@ func openLogFile(dt string) {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-func logger(stackShift int, level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
+func logger(stackShift int, level Level, replace *Replace, message string, params ...interface{}) {
 	if !enabled {
 		return
 	}
@@ -523,8 +530,10 @@ func logger(stackShift int, level Level, secureRE *regexp.Regexp, replaceTo stri
 		text = text[:maxLen]
 	}
 
-	if secureRE != nil {
-		text = secureRE.ReplaceAllString(text, replaceTo)
+	if replace != nil {
+		for _, r := range *replace {
+			text = r.exp.ReplaceAllString(text, r.replaceTo)
+		}
 	}
 
 	text += misc.EOS
@@ -561,23 +570,23 @@ func logger(stackShift int, level Level, secureRE *regexp.Regexp, replaceTo stri
 }
 
 // MessageEx -- add message to the log with custom shift
-func MessageEx(shift int, level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
+func MessageEx(shift int, level Level, replace *Replace, message string, params ...interface{}) {
 	if level <= currentLogLevel {
 		if level < 0 {
 			level = -level
 		}
-		logger(shift+1, level, secureRE, replaceTo, message, params...)
+		logger(shift+1, level, replace, message, params...)
 	}
 }
 
 // Message -- add message to the log
 func Message(level Level, message string, params ...interface{}) {
-	MessageEx(1, level, nil, "", message, params...)
+	MessageEx(1, level, nil, message, params...)
 }
 
 // SecuredMessage -- add message to the log with securing
-func SecuredMessage(level Level, secureRE *regexp.Regexp, replaceTo string, message string, params ...interface{}) {
-	MessageEx(1, level, secureRE, replaceTo, message, params...)
+func SecuredMessage(level Level, replace *Replace, message string, params ...interface{}) {
+	MessageEx(1, level, replace, message, params...)
 }
 
 // MessageWithSource -- add message to the log with source
@@ -586,8 +595,8 @@ func MessageWithSource(level Level, source string, message string, params ...int
 }
 
 // SecuredMessageWithSource -- add message to the log with source & securing
-func SecuredMessageWithSource(level Level, secureRE *regexp.Regexp, replaceTo string, source string, message string, params ...interface{}) {
-	SecuredMessage(level, secureRE, replaceTo, "["+source+"] "+message, params...)
+func SecuredMessageWithSource(level Level, replace *Replace, source string, message string, params ...interface{}) {
+	SecuredMessage(level, replace, "["+source+"] "+message, params...)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -649,6 +658,29 @@ func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
 func StdLogger(level string, message string, params ...interface{}) {
 	nLevel, _ := Str2Level(level)
 	Message(nLevel, message, params...)
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// NewReplace --
+func NewReplace() *Replace {
+	return &Replace{}
+}
+
+// Add --
+func (r *Replace) Add(re string, replaceTo string) error {
+	exp, err := regexp.Compile(re)
+	if err != nil {
+		return err
+	}
+
+	*r = append(*r,
+		replaceDef{
+			exp:       exp,
+			replaceTo: replaceTo,
+		},
+	)
+	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
