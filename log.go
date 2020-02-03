@@ -335,7 +335,7 @@ func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
 	if !ok {
 		msg := fmt.Sprintf(`Invalid log level "%s", left unchanged "%s" `, levelName, logLevels[currentLogLevel].name)
 		err := errors.New(msg)
-		logger(0, WARNING, nil, "", msg)
+		logger(0, WARNING, nil, msg)
 		return currentLogLevel, err
 	}
 
@@ -347,7 +347,7 @@ func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
 		logLock.Unlock()
 
 		currentLogLevel = level
-		logger(0, INFO, nil, "", `Current log level was set to "%s"`, logLevels[level].name)
+		logger(0, INFO, nil, `Current log level was set to "%s"`, logLevels[level].name)
 	} else {
 		logLock.Unlock()
 	}
