@@ -67,7 +67,7 @@ const (
 )
 
 const (
-	beforeFileBufSize = 100
+	beforeFileBufSize = 500
 	lastBufSize       = 10
 )
 
@@ -97,11 +97,14 @@ var (
 
 	consoleWriter io.Writer
 
-	enabled       = true
-	active        = true
-	firstTime     = true
+	enabled   = true
+	active    = true
+	firstTime = true
+
+	dumpFileName  = "unsaved.log"
 	beforeFileBuf = []string{}
-	lastBuf       = []string{}
+
+	lastBuf = []string{}
 
 	currentLogLevel = DEBUG
 
@@ -145,6 +148,8 @@ func init() {
 
 	log.SetFlags(0)
 	log.SetOutput(&stdLogWriter{})
+
+	dumpFileName, _ = misc.AbsPath("@" + misc.AppName() + "_" + dumpFileName)
 
 	go writerFlusher()
 }
@@ -210,6 +215,16 @@ func writerFlush() {
 
 func exit(code int, p interface{}) {
 	Message(INFO, "Log file closed")
+
+	if len(beforeFileBuf) > 0 {
+		fd, err := os.OpenFile(dumpFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err == nil {
+			for _, s := range beforeFileBuf {
+				fd.Write([]byte(s))
+			}
+			fd.Close()
+		}
+	}
 
 	active = false
 
@@ -482,10 +497,14 @@ func openLogFile(dt string) {
 
 		write(msg)
 
-		for _, s := range beforeFileBuf {
-			write(s)
+		if len(beforeFileBuf) > 0 {
+			for _, s := range beforeFileBuf {
+				write(s)
+			}
+			beforeFileBuf = []string{}
 		}
-		beforeFileBuf = []string{}
+
+		os.Remove(dumpFileName)
 	}
 
 	if firstTime {
