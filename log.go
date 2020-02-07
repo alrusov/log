@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -70,13 +69,6 @@ const (
 	beforeFileBufSize = 500
 	lastBufSize       = 10
 )
-
-// Replace --
-type Replace []replaceDef
-type replaceDef struct {
-	exp       *regexp.Regexp
-	replaceTo string
-}
 
 var (
 	logLevels = []logLevelDef{
@@ -515,7 +507,7 @@ func openLogFile(dt string) {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-func logger(stackShift int, level Level, replace *Replace, message string, params ...interface{}) {
+func logger(stackShift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
 	if !enabled {
 		return
 	}
@@ -550,9 +542,7 @@ func logger(stackShift int, level Level, replace *Replace, message string, param
 	}
 
 	if replace != nil {
-		for _, r := range *replace {
-			text = r.exp.ReplaceAllString(text, r.replaceTo)
-		}
+		text = replace.Do(text)
 	}
 
 	text += misc.EOS
@@ -589,7 +579,7 @@ func logger(stackShift int, level Level, replace *Replace, message string, param
 }
 
 // MessageEx -- add message to the log with custom shift
-func MessageEx(shift int, level Level, replace *Replace, message string, params ...interface{}) {
+func MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
 	if level <= currentLogLevel {
 		if level < 0 {
 			level = -level
@@ -604,7 +594,7 @@ func Message(level Level, message string, params ...interface{}) {
 }
 
 // SecuredMessage -- add message to the log with securing
-func SecuredMessage(level Level, replace *Replace, message string, params ...interface{}) {
+func SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
 	MessageEx(1, level, replace, message, params...)
 }
 
@@ -614,7 +604,7 @@ func MessageWithSource(level Level, source string, message string, params ...int
 }
 
 // SecuredMessageWithSource -- add message to the log with source & securing
-func SecuredMessageWithSource(level Level, replace *Replace, source string, message string, params ...interface{}) {
+func SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
 	SecuredMessage(level, replace, "["+source+"] "+message, params...)
 }
 
@@ -677,29 +667,6 @@ func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
 func StdLogger(level string, message string, params ...interface{}) {
 	nLevel, _ := Str2Level(level)
 	Message(nLevel, message, params...)
-}
-
-//----------------------------------------------------------------------------------------------------------------------------//
-
-// NewReplace --
-func NewReplace() *Replace {
-	return &Replace{}
-}
-
-// Add --
-func (r *Replace) Add(re string, replaceTo string) error {
-	exp, err := regexp.Compile(re)
-	if err != nil {
-		return err
-	}
-
-	*r = append(*r,
-		replaceDef{
-			exp:       exp,
-			replaceTo: replaceTo,
-		},
-	)
-	return nil
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
