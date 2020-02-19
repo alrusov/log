@@ -181,7 +181,7 @@ type Testwriter struct {
 }
 
 func (l *Testwriter) Write(p []byte) (n int, err error) {
-	l.stream.Log(string(p))
+	l.stream.Log(strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 
