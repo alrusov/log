@@ -163,7 +163,7 @@ func now() time.Time {
 type stdLogWriter struct{}
 
 func (l *stdLogWriter) Write(p []byte) (int, error) {
-	MessageEx(1, ERR, nil, "", strings.TrimSpace(string(p)))
+	MessageEx(1, NOTICE, nil, "%s", strings.TrimSpace(string(p)))
 	return len(p), nil
 }
 
