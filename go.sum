@@ -1,8 +1,6 @@
-github.com/alrusov/bufpool v0.1.0/go.mod h1:WQGPTsMZFX0fE9s+PLloqXgXMjgg6WICjTvqp9aWpNU=
 github.com/alrusov/bufpool v0.1.2 h1:+pyhEHHBRflJqOW1vS8hrVDGxR49bLCAunik37t0S04=
 github.com/alrusov/bufpool v0.1.2/go.mod h1:WQGPTsMZFX0fE9s+PLloqXgXMjgg6WICjTvqp9aWpNU=
-github.com/alrusov/misc v0.1.8/go.mod h1:IN1ACWOqkBR4fnQEZ5I6wknwOllfPsfxkR2x05kDDnk=
-github.com/alrusov/misc v0.1.10 h1:s58P+CNEgI+2b/dcDe/IEjB5yDy9m8c/LPBcIqB+K8A=
-github.com/alrusov/misc v0.1.10/go.mod h1:F7PSy8shbhYX72CsRpUFBmVyc8Huj0SqGgGKKy+hFn4=
-github.com/alrusov/panic v0.1.4 h1:GjzvXhJxiu6d3Rs38Ew5+jh9V4n4b1LAC3do+TqanE8=
-github.com/alrusov/panic v0.1.4/go.mod h1:4w20p94M6hmW7hswzG84IeHubkwv83k/u1yv0U4dzVE=
+github.com/alrusov/misc v0.1.13 h1:uasP4ulM1v9/HRsq1W0aZtI0N80LL5HKSzIjwLyLhxE=
+github.com/alrusov/misc v0.1.13/go.mod h1:F7PSy8shbhYX72CsRpUFBmVyc8Huj0SqGgGKKy+hFn4=
+github.com/alrusov/panic v0.1.5 h1:0GXRisZXYsIpiyVlq6mNAPhkQroHbhC+PqzyWBvTFOI=
+github.com/alrusov/panic v0.1.5/go.mod h1:ywn7KlmifsJYQulOUJSaIvccMj/u9pAmI7d86EVrWwk=
