@@ -468,11 +468,12 @@ func openLogFile(dt string) {
 		ts = " [" + ts + "Z]"
 	}
 
-	msg := fmt.Sprintf("[%d] %s *** %s %s%s was launched at %sZ with command line \"%s\"",
+	msg := fmt.Sprintf("[%d] %s *** %s %s%s%s was launched at %sZ with command line \"%s\"",
 		pid,
 		logLevels[INFO].shortName,
 		misc.AppName(),
 		misc.AppVersion(),
+		misc.AppTags(true),
 		ts,
 		t.Format(misc.DateTimeFormatRev),
 		cmd)
