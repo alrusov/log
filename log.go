@@ -473,7 +473,7 @@ func openLogFile(dt string) {
 		logLevels[INFO].shortName,
 		misc.AppName(),
 		misc.AppVersion(),
-		misc.AppTags(true),
+		misc.AppTags(false),
 		ts,
 		t.Format(misc.DateTimeFormatRev),
 		cmd)
