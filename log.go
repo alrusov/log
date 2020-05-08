@@ -59,6 +59,18 @@ type logLevelDef struct {
 	shortName string
 }
 
+// FuncNameMode --
+type FuncNameMode string
+
+const (
+	// FuncNameModeNone --
+	FuncNameModeNone = FuncNameMode("none")
+	// FuncNameModeShort --
+	FuncNameModeShort = FuncNameMode("short")
+	// FuncNameModeFull --
+	FuncNameModeFull = FuncNameMode("full")
+)
+
 const (
 	logFuncNameNone int = iota
 	logFuncNameShort
@@ -70,8 +82,19 @@ const (
 	lastBufSize       = 10
 )
 
+// StdFacilityName --
+const StdFacilityName = ""
+
+// Facility --
+type Facility struct {
+	name  string
+	level Level
+}
+
 var (
-	logLevels = []logLevelDef{
+	mutex = new(sync.Mutex)
+
+	levels = []logLevelDef{
 		{EMERG, "EMERG", "EM"},
 		{ALERT, "ALERT", "AL"},
 		{CRIT, "CRIT", "CR"},
@@ -87,6 +110,9 @@ var (
 		{UNKNOWN, "UNKNOWN", "??"},
 	}
 
+	facilities  = map[string]*Facility{}
+	stdFacility *Facility
+
 	consoleWriter io.Writer
 
 	enabled   = true
@@ -98,11 +124,7 @@ var (
 
 	lastBuf = []string{}
 
-	currentLogLevel = DEBUG
-
 	logFuncName = logFuncNameNone
-
-	logLock = new(sync.Mutex)
 
 	localTime     = false
 	lastWriteDate string
@@ -123,7 +145,7 @@ var (
 )
 
 // ChangeLevelAlertFunc --
-type ChangeLevelAlertFunc func(old Level, new Level)
+type ChangeLevelAlertFunc func(facility string, old Level, new Level)
 
 var (
 	alertSubscriberID = int64(0)
@@ -135,6 +157,8 @@ var (
 func init() {
 	pid = os.Getpid()
 	misc.AddExitFunc("log.exit", exit, nil)
+
+	stdFacility = NewFacility(StdFacilityName)
 
 	consoleWriter = &ConsoleWriter{}
 
@@ -288,7 +312,7 @@ func Str2Level(levelName string) (level Level, ok bool) {
 	level = UNKNOWN
 	ok = false
 
-	for _, def := range logLevels {
+	for _, def := range levels {
 		if (levelName == def.name) || (levelName == def.shortName) {
 			level = def.code
 			ok = true
@@ -302,7 +326,7 @@ func Str2Level(levelName string) (level Level, ok bool) {
 func GetLogLevels() []string {
 	list := make([]string, UNKNOWN)
 
-	for _, def := range logLevels {
+	for _, def := range levels {
 		if def.code < UNKNOWN {
 			list[def.code] = def.name
 		}
@@ -313,61 +337,15 @@ func GetLogLevels() []string {
 
 // GetLogLevelName -- get log level names
 func GetLogLevelName(level Level) (short string, long string) {
-	return logLevels[level].shortName, logLevels[level].name
-}
-
-// GetCurrentLogLevel -- get log level
-func GetCurrentLogLevel() (level Level, short string, long string) {
-	level = currentLogLevel
-	short, long = GetLogLevelName(currentLogLevel)
-	return
-}
-
-// SetCurrentLogLevel -- set log level
-func SetCurrentLogLevel(levelName string, logFunc string) (Level, error) {
-	switch logFunc {
-	case "short":
-		logFuncName = logFuncNameShort
-	case "full":
-		logFuncName = logFuncNameFull
-	case "none":
-		fallthrough
-	case "":
-		fallthrough
-	default:
-		logFuncName = logFuncNameNone
-	}
-
-	level, ok := Str2Level(levelName)
-	if !ok {
-		msg := fmt.Sprintf(`Invalid log level "%s", left unchanged "%s" `, levelName, logLevels[currentLogLevel].name)
-		err := errors.New(msg)
-		logger(0, WARNING, nil, msg)
-		return currentLogLevel, err
-	}
-
-	logLock.Lock()
-	if currentLogLevel != level {
-		for _, f := range alertSubscribers {
-			f(currentLogLevel, level)
-		}
-		logLock.Unlock()
-
-		currentLogLevel = level
-		logger(0, INFO, nil, `Current log level was set to "%s"`, logLevels[level].name)
-	} else {
-		logLock.Unlock()
-	}
-
-	return currentLogLevel, nil
+	return levels[level].shortName, levels[level].name
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
 // AddAlertFunc --
 func AddAlertFunc(f ChangeLevelAlertFunc) int64 {
-	logLock.Lock()
-	defer logLock.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	alertSubscriberID++
 	alertSubscribers[alertSubscriberID] = f
@@ -376,8 +354,8 @@ func AddAlertFunc(f ChangeLevelAlertFunc) int64 {
 
 // DelAlertFunc --
 func DelAlertFunc(id int64) {
-	logLock.Lock()
-	defer logLock.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	delete(alertSubscribers, id)
 }
@@ -475,7 +453,7 @@ func openLogFile(dt string) {
 
 	msg := fmt.Sprintf("[%d] %s *** %s %s%s%s was launched at %sZ with command line \"%s\"",
 		pid,
-		logLevels[INFO].shortName,
+		levels[INFO].shortName,
 		misc.AppName(),
 		misc.AppVersion(),
 		tags,
@@ -513,13 +491,22 @@ func openLogFile(dt string) {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-func logger(stackShift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
+func logger(withLock bool, stackShift int, facility string, level Level, replace *misc.Replace, message string, params ...interface{}) {
 	if !enabled {
 		return
 	}
 
-	logLock.Lock()
-	defer logLock.Unlock()
+	if withLock {
+		mutex.Lock()
+		defer mutex.Unlock()
+	}
+
+	levelName := ""
+	if (level >= EMERG) && (level < UNKNOWN) {
+		levelName = levels[level].shortName
+	} else {
+		levelName = fmt.Sprintf("?%d?", level)
+	}
 
 	now := now()
 	dt := now.Format(misc.DateFormatRev)
@@ -534,14 +521,11 @@ func logger(stackShift int, level Level, replace *misc.Replace, message string, 
 		funcName = ""
 	}
 
-	levelName := ""
-	if (level >= EMERG) && (level < UNKNOWN) {
-		levelName = logLevels[level].shortName
-	} else {
-		levelName = fmt.Sprintf("?%d?", level)
+	if facility != "" {
+		facility = " <" + facility + ">"
 	}
 
-	format := fmt.Sprintf("[%d] %s %s %s%s %s", pid, levelName, dt, tm, funcName, message)
+	format := fmt.Sprintf("[%d] %s %s %s%s%s %s", pid, levelName, dt, tm, facility, funcName, message)
 	text := fmt.Sprintf(format, params...)
 	if maxLen > 0 && maxLen < len(text) {
 		text = text[:maxLen]
@@ -582,36 +566,6 @@ func logger(stackShift int, level Level, replace *misc.Replace, message string, 
 	lastBuf = append(lastBuf, text)
 
 	writeToConsole(text)
-}
-
-// MessageEx -- add message to the log with custom shift
-func MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
-	if level <= currentLogLevel {
-		if level < 0 {
-			level = -level
-		}
-		logger(shift+1, level, replace, message, params...)
-	}
-}
-
-// Message -- add message to the log
-func Message(level Level, message string, params ...interface{}) {
-	MessageEx(1, level, nil, message, params...)
-}
-
-// SecuredMessage -- add message to the log with securing
-func SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
-	MessageEx(1, level, replace, message, params...)
-}
-
-// MessageWithSource -- add message to the log with source
-func MessageWithSource(level Level, source string, message string, params ...interface{}) {
-	Message(level, "["+source+"] "+message, params...)
-}
-
-// SecuredMessageWithSource -- add message to the log with source & securing
-func SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
-	SecuredMessage(level, replace, "["+source+"] "+message, params...)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -673,6 +627,215 @@ func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
 func StdLogger(level string, message string, params ...interface{}) {
 	nLevel, _ := Str2Level(level)
 	Message(nLevel, message, params...)
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// CurrentLogLevelOfAll -- get all log levels
+func CurrentLogLevelOfAll() (list map[string]Level) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	list = make(map[string]Level)
+	for name, f := range facilities {
+		list[name] = f.level
+	}
+
+	return
+}
+
+// CurrentLogLevelNamesOfAll -- get all log levels
+func CurrentLogLevelNamesOfAll() (list misc.StringMap) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	list = make(misc.StringMap)
+	for name, f := range facilities {
+		_, n := GetLogLevelName(f.level)
+		list[name] = n
+	}
+
+	return
+}
+
+// SetCurrentLogLevelForAll -- set log level
+func SetCurrentLogLevelForAll(levelName string, logFunc FuncNameMode) (err error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for _, f := range facilities {
+		_, err = f.setCurrentLogLevel(levelName, logFunc)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// NewFacility --
+func NewFacility(name string) *Facility {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	f, exists := facilities[name]
+	if exists {
+		return f
+	}
+
+	level := DEBUG
+	if name != StdFacilityName {
+		level = stdFacility.level
+	}
+
+	f = &Facility{
+		name:  name,
+		level: level,
+	}
+
+	facilities[name] = f
+	return f
+}
+
+// GetFacility --
+func GetFacility(name string) *Facility {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	f, exists := facilities[name]
+	if exists {
+		return f
+	}
+
+	return nil
+}
+
+// CurrentLogLevel -- get log level
+func (f *Facility) CurrentLogLevel() (level Level) {
+	return f.level
+}
+
+// CurrentLogLevelEx -- get log level
+func (f *Facility) CurrentLogLevelEx() (level Level, short string, long string) {
+	level = f.level
+	short, long = GetLogLevelName(level)
+	return
+}
+
+// SetCurrentLogLevel -- set log level
+func (f *Facility) SetCurrentLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return f.setCurrentLogLevel(levelName, funcNameMode)
+}
+
+func (f *Facility) setCurrentLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
+	switch funcNameMode {
+	case FuncNameModeShort:
+		logFuncName = logFuncNameShort
+	case FuncNameModeFull:
+		logFuncName = logFuncNameFull
+	case FuncNameModeNone:
+		fallthrough
+	default:
+		logFuncName = logFuncNameNone
+	}
+
+	oldLevel = f.level
+
+	newLevel, ok := Str2Level(levelName)
+	if !ok {
+		msg := fmt.Sprintf(`Invalid log level "%s", left unchanged "%s" `, levelName, levels[oldLevel].name)
+		err = errors.New(msg)
+		logger(false, 0, f.name, WARNING, nil, msg)
+		return
+	}
+
+	if newLevel != oldLevel {
+		for _, alert := range alertSubscribers {
+			alert(f.name, oldLevel, newLevel)
+		}
+
+		f.level = newLevel
+		logger(false, 0, f.name, INFO, nil, `Current log level is "%s"`, levels[newLevel].name)
+	}
+
+	return
+}
+
+// MessageEx -- add message to the log with custom shift
+func (f *Facility) MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
+	if level <= f.level {
+		if level < 0 {
+			level = -level
+		}
+		logger(true, shift+1, f.name, level, replace, message, params...)
+	}
+}
+
+// Message -- add message to the log
+func (f *Facility) Message(level Level, message string, params ...interface{}) {
+	f.MessageEx(1, level, nil, message, params...)
+}
+
+// MessageWithSource -- add message to the log with source
+func (f *Facility) MessageWithSource(level Level, source string, message string, params ...interface{}) {
+	f.MessageEx(1, level, nil, "["+source+"] "+message, params...)
+}
+
+// SecuredMessage -- add message to the log with securing
+func (f *Facility) SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
+	f.MessageEx(1, level, replace, message, params...)
+}
+
+// SecuredMessageWithSource -- add message to the log with source & securing
+func (f *Facility) SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
+	f.MessageEx(1, level, replace, "["+source+"] "+message, params...)
+}
+
+//----------------------------------------------------------------------------------------------------------------------------//
+
+// CurrentLogLevel --
+func CurrentLogLevel() (level Level) {
+	return stdFacility.CurrentLogLevel()
+}
+
+// CurrentLogLevelEx --
+func CurrentLogLevelEx() (level Level, short string, long string) {
+	return stdFacility.CurrentLogLevelEx()
+}
+
+// SetCurrentLogLevel -- set log level
+func SetCurrentLogLevel(levelName string, logFunc FuncNameMode) (oldLevel Level, err error) {
+	return stdFacility.SetCurrentLogLevel(levelName, logFunc)
+}
+
+// MessageEx -- add message to the log with custom shift
+func MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
+	stdFacility.MessageEx(shift, level, replace, message, params...)
+}
+
+// Message -- add message to the log
+func Message(level Level, message string, params ...interface{}) {
+	stdFacility.Message(level, message, params...)
+}
+
+// SecuredMessage -- add message to the log with securing
+func SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
+	stdFacility.SecuredMessage(level, replace, message, params...)
+}
+
+// MessageWithSource -- add message to the log with source
+func MessageWithSource(level Level, source string, message string, params ...interface{}) {
+	stdFacility.MessageWithSource(level, source, message, params...)
+}
+
+// SecuredMessageWithSource -- add message to the log with source & securing
+func SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
+	stdFacility.SecuredMessageWithSource(level, replace, source, message, params...)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
