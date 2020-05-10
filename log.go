@@ -658,13 +658,17 @@ func CurrentLogLevelNamesOfAll() (list misc.StringMap) {
 	return
 }
 
-// SetCurrentLogLevelForAll -- set log level
-func SetCurrentLogLevelForAll(levelName string, logFunc FuncNameMode) (err error) {
+// SetLogLevels -- set log level
+func SetLogLevels(defaultLevelName string, levels misc.StringMap, logFunc FuncNameMode) (err error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	for _, f := range facilities {
-		_, err = f.setCurrentLogLevel(levelName, logFunc)
+		level, exists := levels[f.name]
+		if !exists {
+			level = defaultLevelName
+		}
+		_, err = f.setLogLevel(level, logFunc)
 		if err != nil {
 			return
 		}
@@ -724,15 +728,15 @@ func (f *Facility) CurrentLogLevelEx() (level Level, short string, long string) 
 	return
 }
 
-// SetCurrentLogLevel -- set log level
-func (f *Facility) SetCurrentLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
+// SetLogLevel -- set log level
+func (f *Facility) SetLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	return f.setCurrentLogLevel(levelName, funcNameMode)
+	return f.setLogLevel(levelName, funcNameMode)
 }
 
-func (f *Facility) setCurrentLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
+func (f *Facility) setLogLevel(levelName string, funcNameMode FuncNameMode) (oldLevel Level, err error) {
 	switch funcNameMode {
 	case FuncNameModeShort:
 		logFuncName = logFuncNameShort
@@ -760,7 +764,7 @@ func (f *Facility) setCurrentLogLevel(levelName string, funcNameMode FuncNameMod
 		}
 
 		f.level = newLevel
-		logger(false, 0, f.name, INFO, nil, `Current log level is "%s"`, levels[newLevel].name)
+		logger(false, 0, f.name, INFO, nil, `Log level is "%s"`, levels[newLevel].name)
 	}
 
 	return
@@ -808,9 +812,9 @@ func CurrentLogLevelEx() (level Level, short string, long string) {
 	return stdFacility.CurrentLogLevelEx()
 }
 
-// SetCurrentLogLevel -- set log level
-func SetCurrentLogLevel(levelName string, logFunc FuncNameMode) (oldLevel Level, err error) {
-	return stdFacility.SetCurrentLogLevel(levelName, logFunc)
+// SetLogLevel -- set log level
+func SetLogLevel(levelName string, logFunc FuncNameMode) (oldLevel Level, err error) {
+	return stdFacility.SetLogLevel(levelName, logFunc)
 }
 
 // MessageEx -- add message to the log with custom shift
