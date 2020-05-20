@@ -624,9 +624,9 @@ func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
 //----------------------------------------------------------------------------------------------------------------------------//
 
 // StdLogger --
-func StdLogger(level string, message string, params ...interface{}) {
+func StdLogger(facility string, level string, message string, params ...interface{}) {
 	nLevel, _ := Str2Level(level)
-	Message(nLevel, message, params...)
+	GetFacility(facility).Message(nLevel, message, params...)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
@@ -714,6 +714,11 @@ func GetFacility(name string) *Facility {
 	}
 
 	return nil
+}
+
+// Name -- get facility name
+func (f *Facility) Name() (name string) {
+	return f.name
 }
 
 // CurrentLogLevel -- get log level
