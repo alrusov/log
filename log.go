@@ -807,6 +807,11 @@ func (f *Facility) SecuredMessageWithSource(level Level, replace *misc.Replace, 
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
+// StdFacility --
+func StdFacility() *Facility {
+	return stdFacility
+}
+
 // CurrentLogLevel --
 func CurrentLogLevel() (level Level) {
 	return stdFacility.CurrentLogLevel()
