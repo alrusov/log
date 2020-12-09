@@ -39,6 +39,8 @@ const (
 	NOTICE
 	// INFO -- informational
 	INFO
+	// TIME -- execution time
+	TIME
 	// DEBUG -- debug-level messages
 	DEBUG
 	// TRACE1 -- trace 1
@@ -102,6 +104,7 @@ var (
 		{WARNING, "WARNING", "WA"},
 		{NOTICE, "NOTICE", "NO"},
 		{INFO, "INFO", "IN"},
+		{TIME, "TIME", "TM"},
 		{DEBUG, "DEBUG", "DE"},
 		{TRACE1, "TRACE1", "T1"},
 		{TRACE2, "TRACE2", "T2"},
