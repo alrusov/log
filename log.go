@@ -255,7 +255,8 @@ func exit(code int, p interface{}) {
 }
 
 func writerFlusher() {
-	defer panic.SaveStackToLog()
+	panicID := panic.ID()
+	defer panic.SaveStackToLogEx(panicID)
 
 	var period int
 	lastFlushDate := ""
@@ -717,7 +718,7 @@ func GetFacility(name string) *Facility {
 		return f
 	}
 
-	return nil
+	return NewFacility(name)
 }
 
 // Name -- get facility name
