@@ -93,6 +93,8 @@ type Facility struct {
 	level Level
 }
 
+type sysWriter struct{}
+
 var (
 	mutex = new(sync.Mutex)
 
@@ -137,10 +139,12 @@ var (
 	fileName        string
 	file            *os.File
 
-	writerBufSize     = 0
-	writer            *bufio.Writer
-	writerMutex       = new(sync.Mutex)
-	writerFlushPeriod = 0
+	writer = &sysWriter{}
+
+	fileWriterBufSize     = 0
+	fileWriter            *bufio.Writer
+	fileWriterMutex       = new(sync.Mutex)
+	fileWriterFlushPeriod = 0
 
 	maxLen = 0
 
@@ -166,7 +170,7 @@ func init() {
 	consoleWriter = &ConsoleWriter{}
 
 	log.SetFlags(0)
-	log.SetOutput(&stdLogWriter{})
+	log.SetOutput(writer)
 
 	dumpFileName, _ = misc.AbsPath("@" + misc.AppName() + "_" + dumpFileName)
 
@@ -187,9 +191,12 @@ func now() time.Time {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-type stdLogWriter struct{}
+// Writer --
+func Writer() io.Writer {
+	return writer
+}
 
-func (l *stdLogWriter) Write(p []byte) (int, error) {
+func (l *sysWriter) Write(p []byte) (int, error) {
 	MessageEx(1, NOTICE, nil, "%s", strings.TrimSpace(string(p)))
 	return len(p), nil
 }
@@ -225,10 +232,10 @@ func SetTestWriter(stream *testing.T) {
 //----------------------------------------------------------------------------------------------------------------------------//
 
 func writerFlush() {
-	if writer != nil {
-		writerMutex.Lock()
-		writer.Flush()
-		writerMutex.Unlock()
+	if fileWriter != nil {
+		fileWriterMutex.Lock()
+		fileWriter.Flush()
+		fileWriterMutex.Unlock()
 	}
 }
 
@@ -262,10 +269,10 @@ func writerFlusher() {
 	lastFlushDate := ""
 
 	for {
-		if writerFlushPeriod == 0 {
+		if fileWriterFlushPeriod == 0 {
 			period = 1
 		} else {
-			period = writerFlushPeriod
+			period = fileWriterFlushPeriod
 		}
 
 		if !misc.Sleep(time.Duration(period) * time.Second) {
@@ -374,10 +381,10 @@ func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, fl
 
 	fileDirectory = directory
 	localTime = useLocalTime
-	writerBufSize = bufSize
+	fileWriterBufSize = bufSize
 
 	if flushPeriod > 0 {
-		writerFlushPeriod = flushPeriod
+		fileWriterFlushPeriod = flushPeriod
 	}
 
 	if fileDirectory == "-" {
@@ -401,10 +408,10 @@ func writeToConsole(msg string) {
 
 func write(s string) {
 	if file != nil {
-		if writer != nil {
-			writerMutex.Lock()
-			writer.Write([]byte(s))
-			writerMutex.Unlock()
+		if fileWriter != nil {
+			fileWriterMutex.Lock()
+			fileWriter.Write([]byte(s))
+			fileWriterMutex.Unlock()
 		} else {
 			file.Write([]byte(s))
 		}
@@ -414,11 +421,11 @@ func write(s string) {
 func openLogFile(dt string) {
 
 	if file != nil {
-		if writer != nil {
-			writerMutex.Lock()
-			writer.Flush()
-			writer = nil
-			writerMutex.Unlock()
+		if fileWriter != nil {
+			fileWriterMutex.Lock()
+			fileWriter.Flush()
+			fileWriter = nil
+			fileWriterMutex.Unlock()
 		}
 		file.Close()
 		file = nil
@@ -472,8 +479,8 @@ func openLogFile(dt string) {
 	msg += misc.EOS
 
 	if file != nil {
-		if writerBufSize > 0 {
-			writer = bufio.NewWriterSize(file, writerBufSize)
+		if fileWriterBufSize > 0 {
+			fileWriter = bufio.NewWriterSize(file, fileWriterBufSize)
 		}
 
 		write(msg)
