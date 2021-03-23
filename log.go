@@ -144,7 +144,7 @@ var (
 	fileWriterBufSize     = 0
 	fileWriter            *bufio.Writer
 	fileWriterMutex       = new(sync.Mutex)
-	fileWriterFlushPeriod = 0
+	fileWriterFlushPeriod = 0 * time.Second
 
 	maxLen = 0
 
@@ -265,7 +265,7 @@ func writerFlusher() {
 	panicID := panic.ID()
 	defer panic.SaveStackToLogEx(panicID)
 
-	var period int
+	var period time.Duration
 	lastFlushDate := ""
 
 	for {
@@ -275,7 +275,7 @@ func writerFlusher() {
 			period = fileWriterFlushPeriod
 		}
 
-		if !misc.Sleep(time.Duration(period) * time.Second) {
+		if !misc.Sleep(period) {
 			break
 		} else {
 			dt := now().Format(misc.DateFormatRev)
@@ -374,7 +374,7 @@ func DelAlertFunc(id int64) {
 //----------------------------------------------------------------------------------------------------------------------------//
 
 // SetFile -- file for log
-func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, flushPeriod int) {
+func SetFile(directory string, suffix string, useLocalTime bool, bufSize int, flushPeriod time.Duration) {
 	if directory == "" {
 		directory = "./logs/"
 	}
