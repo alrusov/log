@@ -270,7 +270,7 @@ func writerFlusher() {
 
 	for {
 		if fileWriterFlushPeriod == 0 {
-			period = 1
+			period = 1 * time.Second
 		} else {
 			period = fileWriterFlushPeriod
 		}
