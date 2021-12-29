@@ -304,7 +304,15 @@ func Disable() {
 
 // GetLastLog --
 func GetLastLog() []string {
-	return lastBuf
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	list := make([]string, len(lastBuf))
+	for i, s := range lastBuf {
+		list[i] = strings.TrimSpace(s)
+	}
+
+	return list
 }
 
 //----------------------------------------------------------------------------------------------------------------------------//
