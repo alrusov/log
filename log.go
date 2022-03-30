@@ -81,7 +81,7 @@ const (
 
 const (
 	beforeFileBufSize = 500
-	lastBufSize       = 10
+	lastBufSize       = 30
 )
 
 // StdFacilityName --
