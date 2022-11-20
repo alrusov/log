@@ -239,7 +239,7 @@ func writerFlush() {
 	}
 }
 
-func exit(code int, p interface{}) {
+func exit(code int, p any) {
 	Message(INFO, "Log file closed")
 
 	if len(beforeFileBuf) > 0 {
@@ -511,7 +511,7 @@ func openLogFile(dt string) {
 
 //----------------------------------------------------------------------------------------------------------------------------//
 
-func logger(withLock bool, stackShift int, facility string, level Level, replace *misc.Replace, message string, params ...interface{}) {
+func logger(withLock bool, stackShift int, facility string, level Level, replace *misc.Replace, message string, params ...any) {
 	if !enabled {
 		return
 	}
@@ -606,37 +606,37 @@ func FileName() string {
 type ServiceLogger struct{}
 
 // Error --
-func (l *ServiceLogger) Error(v ...interface{}) error {
+func (l *ServiceLogger) Error(v ...any) error {
 	Message(ERR, fmt.Sprint(v...))
 	return nil
 }
 
 // Warning --
-func (l *ServiceLogger) Warning(v ...interface{}) error {
+func (l *ServiceLogger) Warning(v ...any) error {
 	Message(WARNING, fmt.Sprint(v...))
 	return nil
 }
 
 // Info --
-func (l *ServiceLogger) Info(v ...interface{}) error {
+func (l *ServiceLogger) Info(v ...any) error {
 	Message(INFO, fmt.Sprint(v...))
 	return nil
 }
 
 // Errorf --
-func (l *ServiceLogger) Errorf(message string, a ...interface{}) error {
+func (l *ServiceLogger) Errorf(message string, a ...any) error {
 	Message(ERR, message, a)
 	return nil
 }
 
 // Warningf --
-func (l *ServiceLogger) Warningf(message string, a ...interface{}) error {
+func (l *ServiceLogger) Warningf(message string, a ...any) error {
 	Message(WARNING, message, a)
 	return nil
 }
 
 // Infof --
-func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
+func (l *ServiceLogger) Infof(message string, a ...any) error {
 	Message(INFO, message, a)
 	return nil
 }
@@ -644,7 +644,7 @@ func (l *ServiceLogger) Infof(message string, a ...interface{}) error {
 //----------------------------------------------------------------------------------------------------------------------------//
 
 // StdLogger --
-func StdLogger(facility string, level string, message string, params ...interface{}) {
+func StdLogger(facility string, level string, message string, params ...any) {
 	nLevel, _ := Str2Level(level)
 	GetFacility(facility).Message(nLevel, message, params...)
 }
@@ -796,7 +796,7 @@ func (f *Facility) setLogLevel(levelName string, funcNameMode FuncNameMode) (old
 }
 
 // MessageEx -- add message to the log with custom shift
-func (f *Facility) MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
+func (f *Facility) MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...any) {
 	if level <= f.level {
 		if level < 0 {
 			level = -level
@@ -806,22 +806,22 @@ func (f *Facility) MessageEx(shift int, level Level, replace *misc.Replace, mess
 }
 
 // Message -- add message to the log
-func (f *Facility) Message(level Level, message string, params ...interface{}) {
+func (f *Facility) Message(level Level, message string, params ...any) {
 	f.MessageEx(1, level, nil, message, params...)
 }
 
 // MessageWithSource -- add message to the log with source
-func (f *Facility) MessageWithSource(level Level, source string, message string, params ...interface{}) {
+func (f *Facility) MessageWithSource(level Level, source string, message string, params ...any) {
 	f.MessageEx(1, level, nil, "["+source+"] "+message, params...)
 }
 
 // SecuredMessage -- add message to the log with securing
-func (f *Facility) SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
+func (f *Facility) SecuredMessage(level Level, replace *misc.Replace, message string, params ...any) {
 	f.MessageEx(1, level, replace, message, params...)
 }
 
 // SecuredMessageWithSource -- add message to the log with source & securing
-func (f *Facility) SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
+func (f *Facility) SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...any) {
 	f.MessageEx(1, level, replace, "["+source+"] "+message, params...)
 }
 
@@ -848,27 +848,27 @@ func SetLogLevel(levelName string, logFunc FuncNameMode) (oldLevel Level, err er
 }
 
 // MessageEx -- add message to the log with custom shift
-func MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...interface{}) {
+func MessageEx(shift int, level Level, replace *misc.Replace, message string, params ...any) {
 	stdFacility.MessageEx(shift, level, replace, message, params...)
 }
 
 // Message -- add message to the log
-func Message(level Level, message string, params ...interface{}) {
+func Message(level Level, message string, params ...any) {
 	stdFacility.Message(level, message, params...)
 }
 
 // SecuredMessage -- add message to the log with securing
-func SecuredMessage(level Level, replace *misc.Replace, message string, params ...interface{}) {
+func SecuredMessage(level Level, replace *misc.Replace, message string, params ...any) {
 	stdFacility.SecuredMessage(level, replace, message, params...)
 }
 
 // MessageWithSource -- add message to the log with source
-func MessageWithSource(level Level, source string, message string, params ...interface{}) {
+func MessageWithSource(level Level, source string, message string, params ...any) {
 	stdFacility.MessageWithSource(level, source, message, params...)
 }
 
 // SecuredMessageWithSource -- add message to the log with source & securing
-func SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...interface{}) {
+func SecuredMessageWithSource(level Level, replace *misc.Replace, source string, message string, params ...any) {
 	stdFacility.SecuredMessageWithSource(level, replace, source, message, params...)
 }
 
