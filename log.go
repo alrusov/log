@@ -221,6 +221,10 @@ func (l *Testwriter) Write(p []byte) (n int, err error) {
 
 // SetConsoleWriter --
 func SetConsoleWriter(writer io.Writer) {
+	if writer == nil {
+		writer = &ConsoleWriter{}
+	}
+
 	consoleWriter = writer
 }
 
