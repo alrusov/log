@@ -549,7 +549,10 @@ func logger(withLock bool, stackShift int, facility string, level Level, replace
 		facility = " <" + facility + ">"
 	}
 
-	format := fmt.Sprintf("[%d] %s %s %s%s%s %s", pid, levelName, dt, tm, facility, funcName, message)
+	format := fmt.Sprintf("[%d] %s %s %s%s%s %s", pid, levelName, dt, tm,
+		strings.ReplaceAll(facility, "%", "%%"),
+		strings.ReplaceAll(funcName, "%", "%%"),
+		message)
 	text := fmt.Sprintf(format, params...)
 	if maxLen > 0 && maxLen < len(text) {
 		text = text[:maxLen]
