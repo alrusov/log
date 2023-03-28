@@ -695,10 +695,7 @@ func SetLogLevels(defaultLevelName string, levels misc.StringMap, logFunc FuncNa
 		if !exists {
 			level = defaultLevelName
 		}
-		_, err = f.setLogLevel(level, logFunc)
-		if err != nil {
-			return
-		}
+		_, _ = f.setLogLevel(level, logFunc)
 	}
 
 	return
