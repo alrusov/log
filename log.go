@@ -708,6 +708,10 @@ func NewFacility(name string) *Facility {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	return newFacility(name)
+}
+
+func newFacility(name string) *Facility {
 	f, exists := facilities[name]
 	if exists {
 		return f
@@ -737,7 +741,7 @@ func GetFacility(name string) *Facility {
 		return f
 	}
 
-	return NewFacility(name)
+	return newFacility(name)
 }
 
 // Name -- get facility name
