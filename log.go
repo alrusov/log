@@ -96,7 +96,7 @@ type Facility struct {
 type sysWriter struct{}
 
 var (
-	mutex = new(sync.Mutex)
+	mutex sync.Mutex
 
 	levels = []logLevelDef{
 		{EMERG, "EMERG", "EM"},
