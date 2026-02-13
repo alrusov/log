@@ -163,7 +163,7 @@ var (
 
 func init() {
 	pid = os.Getpid()
-	misc.AddExitFunc("log.exit", exit, nil)
+	misc.AddFinalizer("log.exit", exit, nil)
 
 	stdFacility = NewFacility(StdFacilityName)
 
